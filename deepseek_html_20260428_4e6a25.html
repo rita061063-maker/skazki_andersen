@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Сказочный квест: Сокровища Читалины</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none; /* легкая защита от копирования, но не мешает нажатиям */
+        }
+
+        body {
+            background: linear-gradient(145deg, #1e5a3a 0%, #0f3b24 100%);
+            font-family: 'Segoe UI', 'Comic Neue', 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', 'Nunito', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* контейнер игры с эффектом свитка */
+        .game-container {
+            max-width: 800px;
+            width: 100%;
+            background: #fffef0;
+            background-image: radial-gradient(circle at 10% 20%, rgba(255,245,200,0.6) 2%, transparent 2.5%);
+            background-size: 28px 28px;
+            border-radius: 68px 48px 72px 52px;
+            box-shadow: 0 30px 35px rgba(0,0,0,0.4), inset 0 1px 5px rgba(255,255,200,0.8);
+            overflow: hidden;
+            padding: 1.5rem 2rem 2rem;
+            transition: all 0.2s;
+        }
+
+        /* шапка с портретом читалины */
+        .hero {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            background: #ffe3b5;
+            padding: 15px 25px;
+            border-radius: 120px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 0 #c29b4a;
+        }
+
+        .avatar {
+            font-size: 4rem;
+            background: #ffcf8e;
+            border-radius: 100%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 -3px 0 #bb8742, 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .hero-text {
+            flex: 1;
+        }
+
+        .hero-text h2 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #563e1f;
+            letter-spacing: 2px;
+        }
+
+        .hero-text p {
+            margin: 5px 0 0;
+            font-style: italic;
+            color: #7a511f;
+            font-weight: bold;
+        }
+
+        /* статус */
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            background: #d9c48b;
+            padding: 10px 20px;
+            border-radius: 60px;
+            margin-bottom: 25px;
+            font-weight: bold;
+            color: #2c2b26;
+            font-size: 1.2rem;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        .score, .timer {
+            background: #2c2b26;
+            padding: 5px 18px;
+            border-radius: 40px;
+            color: #f9e7b3;
+            font-family: monospace;
+            font-size: 1.5rem;
+        }
+
+        .timer {
+            background: #5f3b1c;
+        }
+
+        /* карточка вопроса */
+        .quiz-card {
+            background: #fffbf0;
+            border-radius: 48px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            border: 2px solid #ffda99;
+            box-shadow: 0 12px 18px rgba(0,0,0,0.1);
+        }
+
+        .question-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: #fdf4db;
+            padding: 15px 20px;
+            border-radius: 50px;
+            margin-bottom: 30px;
+            color: #2d3e2b;
+            line-height: 1.3;
+            border-left: 12px solid #eeaa55;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .option-btn {
+            background: #faeec2;
+            border: 2px solid #ddb76b;
+            padding: 14px 18px;
+            border-radius: 50px;
+            font-size: 1.05rem;
+            font-weight: bold;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #2c3e2b;
+            font-family: inherit;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background: #ffdf9c;
+            transform: scale(0.98);
+            border-color: #c2892e;
+        }
+
+        /* фидбек */
+        .feedback {
+            margin-top: 20px;
+            background: #e9e1c7;
+            border-radius: 40px;
+            padding: 12px 20px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 8px solid #f0b27a;
+            color: #3a2a1f;
+        }
+
+        .next-area {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .next-btn {
+            background: #b4712c;
+            border: none;
+            font-size: 1.3rem;
+            font-weight: bold;
+            padding: 12px 35px;
+            border-radius: 40px;
+            color: white;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 5px 0 #654321;
+        }
+
+        .next-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #654321;
+        }
+
+        .next-btn:disabled {
+            opacity: 0.5;
+            transform: none;
+            cursor: default;
+        }
+
+        .restart-btn {
+            background: #488a3a;
+            border: none;
+            font-size: 1.1rem;
+            padding: 8px 18px;
+            border-radius: 50px;
+            color: white;
+            margin-top: 15px;
+            cursor: pointer;
+        }
+
+        .final-message {
+            text-align: center;
+            font-size: 1.7rem;
+            padding: 20px;
+            background: #ffe3b5;
+            border-radius: 50px;
+            margin-top: 15px;
+        }
+
+        hr {
+            border-color: #ffd58c;
+        }
+
+        @media (max-width: 550px) {
+            .game-container {
+                padding: 1rem;
+            }
+            .question-text {
+                font-size: 1.2rem;
+            }
+            .avatar {
+                width: 60px;
+                height: 60px;
+                font-size: 2.8rem;
+            }
+            .hero-text h2 {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container" id="gameRoot">
+    <!-- Динамика через JS -->
+</div>
+
+<script>
+    // ===================== ВОПРОСЫ ====================
+    // Тема: сказки народов России (многообразие, похожие персонажи, разные имена)
+    const QUESTIONS = [
+        {
+            text: "У русской сказки есть хитрая плутовка — Лиса. У народов Севера тоже есть хитрая лисичка, которая обманывает зверей. Как её называют в сказках эвенков и якутов?",
+            options: ["Тикиль", "Кунгур-лиса", "Нярт-лиса", "Хитруша"],
+            correct: 0, // Тикиль
+            explanation: "В эвенкийских и якутских сказках хитрую лисицу зовут Тикиль! Она такая же ловкая, как русская Лиса."
+        },
+        {
+            text: "В русских сказках есть Иван-дурак, который в итоге всех перехитряет и получает награду. У народов Кавказа есть похожий герой — добрый простак, который побеждает умом. Как его имя?",
+            options: ["Насреддин", "Алдар", "Кимит", "Махмуд"],
+            correct: 1, // Алдар
+            explanation: "Алдар — герой осетинских и многих кавказских сказок, такой же находчивый, как Иванушка!"
+        },
+        {
+            text: "В сказках бурят есть могущественный богатырь, который защищает людей от чудовищ. Напоминает русского Илью Муромца. Как зовут этого героя?",
+            options: ["Гэсэр", "Амырга", "Солбон", "Бато"],
+            correct: 0, // Гэсэр
+            explanation: "Гэсэр — знаменитый бурятский богатырь, побеждающий злых демонов! Он очень похож на наших русских богатырей."
+        },
+        {
+            text: "У многих народов есть сказка о том, как звери строили жилище и зимовали вместе. В русской версии — «Зимовье зверей». У мордвы существует похожая сказка. Кто был главным героем-строителем там?",
+            options: ["Медведь и бобёр", "Волк и лиса", "Ёж и заяц", "Петух и кот"],
+            correct: 0, // Медведь и бобёр
+            explanation: "В мордовской сказке «Медведь и бобёр» звери тоже строят дом и дружно зимуют — то же доброе единство!"
+        },
+        {
+            text: "У чукчей и эскимосов есть героиня, которая похожа на русскую Бабу-ягу: живёт в тундре, может помогать или вредить. Её называют Кутх или ...? (Назовите имя ведьмы/волшебницы)",
+            options: ["Пэгытти", "Тосай", "Айыы", "Кыыс-Хаан"],
+            correct: 0, // Пэгытти
+            explanation: "Пэгытти — чукотская колдунья, похожая на Бабу-ягу. Тоже летает в ступе? Почти, но очень загадочная!"
+        },
+        {
+            text: "Что общего есть в сказках народов Поволжья (например, татарские или башкирские) с русским Колобком?",
+            options: ["Герой-лепёшка, который убегает от зверей", "Герой-лукошко", "Герой-камень", "Герой-перо"],
+            correct: 0,
+            explanation: "Да! У татар есть «Колобок» — «Коймак» (лепёшка) или похожий сюжет про шустрого хлебца!"
+        },
+        {
+            text: "В русских сказках Кощей Бессмертный прячет смерть в игле. У ненецких сказок есть злой великан с похожей тайной: его сила спрятана в предмете. Как зовут такого великана?",
+            options: ["Яга-Морт", "Парнэ", "Сяра-Сава", "Тулиган"],
+            correct: 0, // Яга-Морт
+            explanation: "Яга-Морт — злой лесной великан (у коми и ненцев). Иногда его сила в яйце или игле, как у Кощея!"
+        },
+        {
+            text: "Кавказские нартские сказания полны героев. Один из них — Сосруко, который похож на русского героя, добывающего огонь/воду. На кого из русских сказочных персонажей он больше похож?",
+            options: ["Ивана-царевича", "Никиту Кожемяку", "Василису Премудрую", "Емелю"],
+            correct: 0,
+            explanation: "Сосруко — добытчик, победитель чудовищ, напоминает Ивана-царевича из русских волшебных сказок!"
+        },
+        {
+            text: "У многих народов Сибири есть водяной дух, похожий на нашего Водяного. Как называют водяного хозяина рек у хантов и манси?",
+            options: ["Вит-хон", "Мук-лун", "Сями", "Кикимора"],
+            correct: 0, // Вит-хон
+            explanation: "Вит-хон — водяной владыка в хантыйских сказках, такой же бородатый и командующий рыбами!"
+        },
+        {
+            text: "В русских сказках Василиса Премудрая помогает герою. В якутских сказках есть девушка-чародейка, которая спасает охотника. Её зовут? (Похоже на русскую Василису)",
+            options: ["Туйаарыма Куо", "Кыыс Дэбэлэ", "Аан Алахчын", "Нюргуяна"],
+            correct: 1, // Кыыс Дэбэлэ
+            explanation: "Кыыс Дэбэлэ (дочь Хозяина воды) — мудрая и волшебная, помогает героям, как Василиса!"
+        }
+    ];
+
+    // ---------- Игровое состояние ----------
+    let currentIndex = 0;          // 0-9
+    let totalScore = 0;
+    let answered = false;          // уже ответили на текущий вопрос?
+    let selectedOption = null;     // для подсветки (не обязательно)
+    let timeLeft = 600;            // 10 минут = 600 сек
+    let timerInterval = null;
+    let gameActive = true;          // активна ли игра (не закончена, таймер не истек)
+    let gameFinished = false;       // финиш по последнему вопросу или таймеру
+
+    // Элементы DOM создадим динамически
+    const gameRoot = document.getElementById('gameRoot');
+
+    function formatTime(seconds) {
+        let mins = Math.floor(seconds / 60);
+        let secs = seconds % 60;
+        return `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+    }
+
+    // Остановка таймера
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }
+
+    // Завершить игру (по таймеру или принудительно)
+    function finishGame(reason = 'timeout') {
+        if (gameFinished) return;
+        gameFinished = true;
+        gameActive = false;
+        stopTimer();
+        // Показать финальный экран, если не последний вопрос был отвечен до таймера
+        renderFinalScreen();
+    }
+
+    // Обработка ответа
+    function handleAnswer(optionIndex, isCorrect, explanationText) {
+        if (!gameActive || answered || gameFinished) return;
+
+        answered = true;
+        let feedbackMsg = "";
+        if (isCorrect) {
+            totalScore += 10;
+            feedbackMsg = `✅ Верно! +10 очков! ${explanationText} 🌟`;
+        } else {
+            const correctAnswerText = QUESTIONS[currentIndex].options[QUESTIONS[currentIndex].correct];
+            feedbackMsg = `❌ Ой, неверно… Правильный ответ: "${correctAnswerText}". ${explanationText} Не расстраивайся, следующее задание ждёт! 📖`;
+        }
+
+        // сохраняем фидбек и обновляем рендер
+        renderCurrentQuestionWithFeedback(optionIndex, isCorrect, feedbackMsg);
+    }
+
+    // Перейти к следующему вопросу
+    function nextQuestion() {
+        if (!gameActive || gameFinished) return;
+        if (!answered) {
+            // Нельзя перейти без ответа
+            return;
+        }
+        // переходим к след. вопросу
+        if (currentIndex + 1 < QUESTIONS.length) {
+            currentIndex++;
+            answered = false;
+            selectedOption = null;
+            renderCurrentQuestion();
+        } else {
+            // игра закончена, все вопросы пройдены
+            gameActive = false;
+            gameFinished = true;
+            stopTimer();
+            renderFinalScreen();
+        }
+    }
+
+    // Рендер финального экрана с очками и поздравлениями
+    function renderFinalScreen() {
+        const maxScore = QUESTIONS.length * 10;
+        let message = '';
+        if (totalScore === maxScore) {
+            message = `🎉✨ ВОЛШЕБНО! Идеальный результат ${totalScore} из ${maxScore}! ✨🎉<br> Читалина гордится тобой! Ты знаток сказок народов России!`;
+        } else if (totalScore >= maxScore/2) {
+            message = `📚 Отлично! Ты набрал(а) ${totalScore} очков из ${maxScore}. Ты хорошо чувствуешь сказки! Попробуй ещё раз, чтобы стать чемпионом! 🌈`;
+        } else {
+            message = `🧸 Ты набрал(а) ${totalScore} очков. Не беда! Пройди квест ещё раз — интуиция подскажет лучше! В мире сказок так много общего, и ты обязательно запомнишь героев! 🌟`;
+        }
+        const timerEndMsg = timeLeft <= 0 ? "<p>⏰ Время вышло! Но ты молодец, что прошёл столько вопросов.</p>" : "";
+        gameRoot.innerHTML = `
+            <div class="game-container" style="padding:1.5rem">
+                <div class="hero">
+                    <div class="avatar">📖👧</div>
+                    <div class="hero-text"><h2>Читалина</h2><p>Хранительница сказок</p></div>
+                </div>
+                <div class="final-message">
+                    ${message}
+                    ${timerEndMsg}
+                    <div style="font-size:1.2rem; margin-top:15px;">🎯 Твой счёт: ${totalScore} / ${maxScore}</div>
+                    <button class="restart-btn" id="restartBtn">🔄 Пройти квест заново</button>
+                </div>
+            </div>
+        `;
+        const restartBtn = document.getElementById('restartBtn');
+        if (restartBtn) restartBtn.addEventListener('click', () => restartGame());
+    }
+
+    // Рендер текущего вопроса (без фидбека) но сначала очистим
+    function renderCurrentQuestion() {
+        if (gameFinished) return;
+        const q = QUESTIONS[currentIndex];
+        const progress = `Вопрос ${currentIndex+1} из ${QUESTIONS.length}`;
+        const scoreHtml = `🎓 Очки: ${totalScore}`;
+        const timerHtml = `⏱️ ${formatTime(timeLeft)}`;
+
+        const optionsHtml = q.options.map((opt, idx) => {
+            return `<button class="option-btn" data-opt-index="${idx}">${String.fromCharCode(65+idx)}. ${opt}</button>`;
+        }).join('');
+
+        gameRoot.innerHTML = `
+            <div class="game-container">
+                <div class="hero">
+                    <div class="avatar">📖🧝♀️</div>
+                    <div class="hero-text"><h2>Читалина</h2><p>«Сказки народов России — как река, полная чудес!»</p></div>
+                </div>
+                <div class="stats">
+                    <span>${progress}</span>
+                    <span class="score">${scoreHtml}</span>
+                    <span class="timer" id="timerDisplay">${timerHtml}</span>
+                </div>
+                <div class="quiz-card">
+                    <div class="question-text">❓ ${q.text}</div>
+                    <div class="options" id="optionsContainer">
+                        ${optionsHtml}
+                    </div>
+                    <div class="feedback" id="feedbackArea" style="display: none;">
+                        <!-- фидбек появится после ответа -->
+                    </div>
+                    <div class="next-area">
+                        <button class="next-btn" id="nextBtn" disabled>➡️ Дальше</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Добавляем обработчики кнопкам
+        const optBtns = document.querySelectorAll('.option-btn');
+        optBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if (answered || !gameActive || gameFinished) return;
+                const idx = parseInt(btn.dataset.optIndex);
+                const isCorrect = (idx === q.correct);
+                const explanation = q.explanation;
+                handleAnswer(idx, isCorrect, explanation);
+            });
+        });
+
+        // Кнопка next
+        const nextBtn = document.getElementById('nextBtn');
+        nextBtn.addEventListener('click', () => nextQuestion());
+    }
+
+    // Рендер после ответа с фидбеком (блокировка опций)
+    function renderCurrentQuestionWithFeedback(selectedIdx, isCorrect, feedbackMsg) {
+        if (gameFinished) return;
+        const q = QUESTIONS[currentIndex];
+        const progress = `Вопрос ${currentIndex+1} из ${QUESTIONS.length}`;
+        const scoreHtml = `🎓 Очки: ${totalScore}`;
+        const timerHtml = `⏱️ ${formatTime(timeLeft)}`;
+
+        // создадим кнопки с возможностью подсветки правильного и неправильного ответа (но не обязательно, показываем фидбек)
+        let optionsHtml = q.options.map((opt, idx) => {
+            let additionalClass = '';
+            let style = '';
+            if (answered) {
+                if (idx === q.correct) {
+                    additionalClass = 'correct-answer';
+                    style = 'background: #b5e3b5; border-color: #2c6e2c;';
+                } else if (idx === selectedIdx && idx !== q.correct) {
+                    style = 'background: #f0b2b2; border-color: #b33; text-decoration: line-through;';
+                } else {
+                    style = 'opacity:0.7;';
+                }
+            }
+            return `<button class="option-btn" style="${style}" disabled>${String.fromCharCode(65+idx)}. ${opt}</button>`;
+        }).join('');
+
+        gameRoot.innerHTML = `
+            <div class="game-container">
+                <div class="hero">
+                    <div class="avatar">📖🧝♀️</div>
+                    <div class="hero-text"><h2>Читалина</h2><p>«Ты молодец, что пробуешь! Сказки ждут!»</p></div>
+                </div>
+                <div class="stats">
+                    <span>${progress}</span>
+                    <span class="score">${scoreHtml}</span>
+                    <span class="timer" id="timerDisplay">${timerHtml}</span>
+                </div>
+                <div class="quiz-card">
+                    <div class="question-text">❓ ${q.text}</div>
+                    <div class="options" id="optionsContainer">
+                        ${optionsHtml}
+                    </div>
+                    <div class="feedback" id="feedbackArea">
+                        ${feedbackMsg} ${!isCorrect ? '😊 Попробуй следующий!' : '🐉 Ура! Лети дальше!'}
+                    </div>
+                    <div class="next-area">
+                        <button class="next-btn" id="nextBtn">➡️ Дальше</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const nextBtn = document.getElementById('nextBtn');
+        nextBtn.addEventListener('click', () => nextQuestion());
+    }
+
+    // Обновление таймера в любом состоянии, если игра активна
+    function updateTimerDisplay() {
+        if (!gameActive && !gameFinished) return;
+        const timerSpan = document.querySelector('.timer');
+        if (timerSpan && !gameFinished) {
+            timerSpan.innerText = `⏱️ ${formatTime(timeLeft)}`;
+        } else if (timerSpan && gameFinished) {
+            // возможно финал, ничего не делаем
+        }
+    }
+
+    // Запуск таймера (с обновлением UI)
+    function startTimer() {
+        if (timerInterval) stopTimer();
+        timerInterval = setInterval(() => {
+            if (!gameActive || gameFinished) return;
+            if (timeLeft <= 1) {
+                // время истекло
+                timeLeft = 0;
+                updateTimerDisplay();
+                stopTimer();
+                gameActive = false;
+                gameFinished = true;
+                finishGame('timeout');
+            } else {
+                timeLeft--;
+                updateTimerDisplay();
+                // дополнительно если таймер кончился а игра еще нет
+                if (timeLeft === 0) {
+                    gameActive = false;
+                    gameFinished = true;
+                    finishGame('timeout');
+                }
+            }
+        }, 1000);
+    }
+
+    // Функция рестарта, полностью сбрасываем состояние
+    function restartGame() {
+        stopTimer();
+        // сброс переменных
+        currentIndex = 0;
+        totalScore = 0;
+        answered = false;
+        selectedOption = null;
+        timeLeft = 600;
+        gameActive = true;
+        gameFinished = false;
+        // перерисовываем первый вопрос и запускаем таймер заново
+        renderCurrentQuestion();
+        startTimer();
+    }
+
+    // Инициализация игры (первый рендер)
+    function initGame() {
+        currentIndex = 0;
+        totalScore = 0;
+        answered = false;
+        timeLeft = 600;
+        gameActive = true;
+        gameFinished = false;
+        renderCurrentQuestion();
+        startTimer();
+    }
+
+    initGame();
+</script>
+</body>
+</html>
